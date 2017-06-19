@@ -149,6 +149,31 @@ class PostgreSQLTests: XCTestCase {
 		}
 		p.finish()
 	}
+
+    func testTimestamps() {
+        let p = PGConnection()
+        let status = p.connectdb(postgresTestConnInfo)
+        guard case .ok = status else {
+            return XCTAssert(status == .ok)
+        }
+
+        var statement = "SELECT "
+        statement += "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02',"
+        statement += "TIMESTAMP '2004-10-19 10:23:54+02',"
+        statement += "DATE '2004-10-19 10:23:54+02',"
+        statement += "TIME WITH TIME ZONE '2004-10-19 10:23:54+02',"
+        statement += "TIME '2004-10-19 10:23:54+02'"
+
+        let res = p.exec(statement: statement)
+        XCTAssertEqual(res.status(), PGResult.StatusType.tuplesOK, res.errorMessage())
+        XCTAssertEqual(res.numTuples(), 1)
+        XCTAssertEqual(res.numFields(), 5)
+
+        for field in 0..<res.numFields() {
+            print("RES \(res.getFieldDate(tupleIndex: 0, fieldIndex: field))")
+        }
+        p.finish()
+    }
 }
 
 extension PostgreSQLTests {
@@ -158,7 +183,8 @@ extension PostgreSQLTests {
             ("testExec", testExec),
             ("testExecGetValues", testExecGetValues),
             ("testExecGetValuesParams", testExecGetValuesParams),
-            ("testAnyBinds", testAnyBinds)
+            ("testAnyBinds", testAnyBinds),
+            ("testTimestamps", testTimestamps)
         ]
     }
 }
