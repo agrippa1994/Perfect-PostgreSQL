@@ -229,7 +229,44 @@ public final class PGResult {
 		}
 		return ret
 	}
-	
+
+    /// return value for Date/Time/Timestamp field type with row and field indexes provided
+    public func getFieldDate(tupleIndex: Int, fieldIndex: Int) -> DateComponents? {
+        guard let s = getFieldString(tupleIndex: tupleIndex, fieldIndex: fieldIndex) else {
+            return nil
+        }
+        enum TimeType {
+            case TimeStampWithTimeZone // e.g.: 2004-10-19 10:23:54+02
+            case TimeStamp // e.g.: 2004-10-19 10:23:54
+            case Date // e.g.: 2004-10-19
+            case TimeWithTimeZone // e.g.: 10:23:54+02
+            case Time // e.g.: 10:23:54
+        }
+        let timeRegexLookup: [TimeType: String] = [
+            .TimeStampWithTimeZone: "^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})([\\+\\-]\\d{1,4})$",
+            .TimeStamp: "^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})$",
+            .Date: "^(\\d{4})-(\\d{2})-(\\d{2})$",
+            .TimeWithTimeZone: "^(\\d{2}):(\\d{2}):(\\d{2})([\\+\\-]\\d{1,4})$",
+            .Time: "^(\\d{2}):(\\d{2}):(\\d{2})$"
+        ]
+        let timeParser: [TimeType: (String, [NSTextCheckingResult]) -> DateComponents] = [
+            .TimeStampWithTimeZone: { dateString, groups in
+                DateComponents()
+            }
+        ]
+        for (type, regexString) in timeRegexLookup {
+            guard let regex = try? NSRegularExpression(pattern: regexString, options: .anchorsMatchLines) else {
+                continue
+            }
+
+            let matches = regex.matches(in: s, options: .anchored, range: NSMakeRange(0, s.characters.count))
+            if matches.count > 0 {
+                return timeParser[type]?(s, matches)
+            }
+        }
+        return nil
+    }
+
 	private func byteFromHexDigits(one c1v: Int8, two c2v: Int8) -> Int8? {
 		
 		let capA: Int8 = 65
